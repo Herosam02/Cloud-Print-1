@@ -18,47 +18,41 @@ import {
   RotateCw,
   Copy,
   Layers,
-  FileImage,
-  FileText,
-  Minus,
-  ArrowRight,
-  Star,
-  Triangle,
-  AlignLeft,
+  X,
+  Focus,
+  Eye,
+  Crop,
+  PaintBucket,
+  MousePointer2,
+  Hand,
+  Pen,
+  Eraser,
+  Pipette,
+  Zap,
+  Filter,
+  Brush,
+  Scissors,
+  FlipHorizontal,
+  FlipVertical,
+  MoreHorizontal,
   AlignCenter,
+  AlignLeft,
   AlignRight,
   Bold,
   Italic,
   Underline,
-  ChevronUp,
-  ChevronDown,
-  MousePointer,
-  Lasso,
-  Wand2,
-  Brush,
-  Pencil,
-  Eraser,
-  Stamp,
-  Sun,
-  Moon,
-  Crop,
-  Maximize,
-  Grid3X3,
-  Layers2,
-  Eye,
-  PaintBucket,
-  Scissors,
-  RotateCcw,
-  Settings,
-  Focus
+  Hash,
+  Star,
+  Heart,
+  Triangle,
+  Hexagon
 } from 'lucide-react';
-import { Heart, Shield, Zap } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 interface Element {
   id: string;
-  type: 'text' | 'image' | 'shape' | 'line' | 'arrow' | 'brush' | 'selection';
+  type: 'text' | 'image' | 'shape';
   x: number;
   y: number;
   width: number;
@@ -69,92 +63,66 @@ interface Element {
   backgroundColor?: string;
   fontSize?: number;
   fontFamily?: string;
+  rotation?: number;
+  zIndex: number;
+  opacity?: number;
+  borderWidth?: number;
+  borderColor?: string;
   fontWeight?: string;
   fontStyle?: string;
   textDecoration?: string;
   textAlign?: string;
-  rotation?: number;
-  zIndex: number;
-  strokeWidth?: number;
-  borderRadius?: number;
-  opacity?: number;
-  blur?: number;
-  brightness?: number;
-  contrast?: number;
-  selected?: boolean;
-  brushStrokes?: Array<{x: number, y: number}>;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  category: string;
+  elements: Element[];
+  canvasSize: { width: number; height: number };
+  thumbnail: string;
+  createdAt: string;
+  downloads?: number;
+  rating?: number;
+  author?: string;
 }
 
 interface TemplateEditorProps {
-  templateId?: string;
-  onSave: (template: any) => void;
+  template?: Template;
+  onSave: (template: Template) => void;
   onClose: () => void;
 }
 
-const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onClose }) => {
-  const [elements, setElements] = useState<Element[]>([]);
+const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSave, onClose }) => {
+  const [elements, setElements] = useState<Element[]>(template?.elements || []);
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [selectedTool, setSelectedTool] = useState<string>('move');
-  const [draggedElement, setDraggedElement] = useState<string | null>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+  const [canvasSize, setCanvasSize] = useState(template?.canvasSize || { width: 800, height: 600 });
   const [zoom, setZoom] = useState(1);
-  const [history, setHistory] = useState<Element[][]>([[]]);
+  const [history, setHistory] = useState<Element[][]>([template?.elements || []]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  const [templateName, setTemplateName] = useState('');
-  const [templateCategory, setTemplateCategory] = useState('business-cards');
+  const [templateName, setTemplateName] = useState(template?.name || 'My Design');
+  const [templateCategory, setTemplateCategory] = useState(template?.category || 'business-cards');
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormat, setExportFormat] = useState<'png' | 'jpg' | 'jpeg' | 'pdf'>('png');
   const [exportQuality, setExportQuality] = useState(1);
-  const [brushSize, setBrushSize] = useState(5);
-  const [brushColor, setBrushColor] = useState('#000000');
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [selectionArea, setSelectionArea] = useState<{x: number, y: number, width: number, height: number} | null>(null);
-  const [cropMode, setCropMode] = useState(false);
-  const [eyedropperActive, setEyedropperActive] = useState(false);
+  const [activeTool, setActiveTool] = useState('select');
+  const [isExporting, setIsExporting] = useState(false);
   
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const toolCategories = [
-    {
-      name: 'Selection',
-      tools: [
-        { id: 'move', name: 'Move', icon: Move, shortcut: 'V' },
-        { id: 'marquee', name: 'Marquee', icon: Square, shortcut: 'M' },
-        { id: 'lasso', name: 'Lasso', icon: Lasso, shortcut: 'L' },
-        { id: 'quick-select', name: 'Quick Select', icon: Wand2, shortcut: 'W' },
-        { id: 'magic-wand', name: 'Magic Wand', icon: Wand2, shortcut: 'W' }
-      ]
-    },
-    {
-      name: 'Paint',
-      tools: [
-        { id: 'brush', name: 'Brush', icon: Brush, shortcut: 'B' },
-        { id: 'pencil', name: 'Pencil', icon: Pencil, shortcut: 'B' },
-        { id: 'eraser', name: 'Eraser', icon: Eraser, shortcut: 'E' }
-      ]
-    },
-    {
-      name: 'Retouch',
-      tools: [
-        { id: 'clone', name: 'Clone', icon: Stamp, shortcut: 'S' },
-        { id: 'healing', name: 'Healing', icon: Heart, shortcut: 'J' },
-        { id: 'dodge', name: 'Dodge', icon: Sun, shortcut: 'O' },
-        { id: 'burn', name: 'Burn', icon: Moon, shortcut: 'O' },
-        { id: 'smudge', name: 'Smudge', icon: Focus, shortcut: 'R' }
-      ]
-    },
-    {
-      name: 'Create',
-      tools: [
-        { id: 'text', name: 'Text', icon: Type, shortcut: 'T' },
-        { id: 'crop', name: 'Crop', icon: Crop, shortcut: 'C' },
-        { id: 'upload', name: 'Upload', icon: Upload, shortcut: 'U' },
-        { id: 'shape', name: 'Shape', icon: Square, shortcut: 'S' }
-      ]
+  useEffect(() => {
+    if (template) {
+      setElements(template.elements);
+      setCanvasSize(template.canvasSize);
+      setTemplateName(template.name);
+      setTemplateCategory(template.category);
+      setHistory([template.elements]);
+      setHistoryIndex(0);
     }
-  ];
+  }, [template]);
 
   const addToHistory = useCallback((newElements: Element[]) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -185,24 +153,25 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
       y: 100,
       width: 200,
       height: 40,
-      content: 'Double click to edit',
+      content: 'Click to edit text',
       color: '#000000',
       fontSize: 16,
       fontFamily: 'Arial',
+      rotation: 0,
+      zIndex: elements.length,
+      opacity: 1,
       fontWeight: 'normal',
       fontStyle: 'normal',
       textDecoration: 'none',
-      textAlign: 'left',
-      rotation: 0,
-      zIndex: elements.length,
-      opacity: 1
+      textAlign: 'left'
     };
     const newElements = [...elements, newElement];
     setElements(newElements);
     addToHistory(newElements);
+    setSelectedElement(newElement.id);
   };
 
-  const addShapeElement = (shapeType: 'rectangle' | 'circle' | 'triangle' | 'star') => {
+  const addShapeElement = (shapeType: 'rectangle' | 'circle' | 'triangle' | 'star' | 'heart' | 'hexagon') => {
     const newElement: Element = {
       id: `shape-${Date.now()}`,
       type: 'shape',
@@ -214,31 +183,14 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
       rotation: 0,
       zIndex: elements.length,
       content: shapeType,
-      borderRadius: shapeType === 'rectangle' ? 0 : undefined,
-      opacity: 1
+      opacity: 1,
+      borderWidth: 0,
+      borderColor: '#000000'
     };
     const newElements = [...elements, newElement];
     setElements(newElements);
     addToHistory(newElements);
-  };
-
-  const addLineElement = (lineType: 'line' | 'arrow') => {
-    const newElement: Element = {
-      id: `${lineType}-${Date.now()}`,
-      type: lineType,
-      x: 200,
-      y: 200,
-      width: 100,
-      height: 2,
-      color: '#000000',
-      strokeWidth: 2,
-      rotation: 0,
-      zIndex: elements.length,
-      opacity: 1
-    };
-    const newElements = [...elements, newElement];
-    setElements(newElements);
-    addToHistory(newElements);
+    setSelectedElement(newElement.id);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,12 +213,20 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
         const newElements = [...elements, newElement];
         setElements(newElements);
         addToHistory(newElements);
+        setSelectedElement(newElement.id);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const updateElement = (id: string, updates: Partial<Element>) => {
+    const newElements = elements.map(el => 
+      el.id === id ? { ...el, ...updates } : el
+    );
+    setElements(newElements);
+  };
+
+  const commitElementUpdate = (id: string, updates: Partial<Element>) => {
     const newElements = elements.map(el => 
       el.id === id ? { ...el, ...updates } : el
     );
@@ -294,169 +254,362 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
       const newElements = [...elements, newElement];
       setElements(newElements);
       addToHistory(newElements);
+      setSelectedElement(newElement.id);
     }
   };
 
-  const moveElementLayer = (id: string, direction: 'up' | 'down') => {
+  const rotateElement = (id: string) => {
     const element = elements.find(el => el.id === id);
-    if (!element) return;
-
-    const newZIndex = direction === 'up' ? element.zIndex + 1 : element.zIndex - 1;
-    if (newZIndex < 0) return;
-
-    updateElement(id, { zIndex: newZIndex });
-  };
-
-  const alignElements = (alignment: 'left' | 'center' | 'right') => {
-    if (!selectedElement) return;
-    
-    const element = elements.find(el => el.id === selectedElement);
-    if (!element || element.type !== 'text') return;
-
-    updateElement(selectedElement, { textAlign: alignment });
-  };
-
-  const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (!canvasRef.current) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
-
-    if (selectedTool === 'brush' || selectedTool === 'pencil') {
-      setIsDrawing(true);
-      startDrawing(x, y);
-    } else if (selectedTool === 'marquee') {
-      setSelectionArea({ x, y, width: 0, height: 0 });
-    } else if (selectedTool === 'eyedropper') {
-      pickColor(x, y);
+    if (element) {
+      const currentRotation = element.rotation || 0;
+      const newRotation = (currentRotation + 90) % 360;
+      commitElementUpdate(id, { rotation: newRotation });
     }
   };
 
-  const handleCanvasMouseMove = (e: React.MouseEvent) => {
-    if (!canvasRef.current) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
-
-    if (isDrawing && (selectedTool === 'brush' || selectedTool === 'pencil')) {
-      continueDrawing(x, y);
-    } else if (selectionArea && selectedTool === 'marquee') {
-      setSelectionArea(prev => prev ? {
-        ...prev,
-        width: x - prev.x,
-        height: y - prev.y
-      } : null);
-    } else if (draggedElement) {
-      updateElement(draggedElement, { x: x - 50, y: y - 20 });
+  const flipElement = (id: string, direction: 'horizontal' | 'vertical') => {
+    const element = elements.find(el => el.id === id);
+    if (element) {
+      const currentRotation = element.rotation || 0;
+      if (direction === 'horizontal') {
+        commitElementUpdate(id, { rotation: (currentRotation + 180) % 360 });
+      } else {
+        commitElementUpdate(id, { rotation: (360 - currentRotation) % 360 });
+      }
     }
   };
 
-  const handleCanvasMouseUp = () => {
-    setIsDrawing(false);
-    setDraggedElement(null);
-    if (selectedTool === 'marquee' && selectionArea) {
-      const selectedElements = elements.filter(el => 
-        el.x >= selectionArea.x && 
-        el.y >= selectionArea.y && 
-        el.x + el.width <= selectionArea.x + selectionArea.width &&
-        el.y + el.height <= selectionArea.y + selectionArea.height
-      );
-      selectedElements.forEach(el => updateElement(el.id, { selected: true }));
-    }
+  const bringToFront = (id: string) => {
+    const maxZ = Math.max(...elements.map(el => el.zIndex));
+    commitElementUpdate(id, { zIndex: maxZ + 1 });
   };
 
-  const startDrawing = (x: number, y: number) => {
-    const canvas = drawingCanvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.strokeStyle = brushColor;
-    ctx.lineWidth = brushSize;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
-
-  const continueDrawing = (x: number, y: number) => {
-    const canvas = drawingCanvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  };
-
-  const pickColor = (x: number, y: number) => {
-    console.log('Picking color at', x, y);
-  };
-
-  const applyFilter = (filter: string, value: number) => {
-    if (!selectedElement) return;
-    
-    switch (filter) {
-      case 'blur':
-        updateElement(selectedElement, { blur: value });
-        break;
-      case 'brightness':
-        updateElement(selectedElement, { brightness: value });
-        break;
-      case 'contrast':
-        updateElement(selectedElement, { contrast: value });
-        break;
-      case 'opacity':
-        updateElement(selectedElement, { opacity: value });
-        break;
-    }
+  const sendToBack = (id: string) => {
+    const minZ = Math.min(...elements.map(el => el.zIndex));
+    commitElementUpdate(id, { zIndex: minZ - 1 });
   };
 
   const handleMouseDown = (e: React.MouseEvent, elementId: string) => {
     e.preventDefault();
-    if (selectedTool === 'move') {
-      setSelectedElement(elementId);
-      setDraggedElement(elementId);
+    e.stopPropagation();
+    setSelectedElement(elementId);
+    setIsDragging(true);
+    
+    const element = elements.find(el => el.id === elementId);
+    if (element && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      setDragOffset({
+        x: x - element.x,
+        y: y - element.y
+      });
     }
   };
 
-  const saveTemplate = () => {
-    const template = {
-      id: templateId || `template-${Date.now()}`,
-      name: templateName || 'Untitled Template',
-      category: templateCategory,
-      elements,
-      canvasSize,
-      thumbnail: generateThumbnail(),
-      createdAt: new Date().toISOString()
-    };
-    onSave(template);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && selectedElement && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      
+      updateElement(selectedElement, { 
+        x: Math.max(0, x - dragOffset.x), 
+        y: Math.max(0, y - dragOffset.y) 
+      });
+    }
   };
 
-  const generateThumbnail = () => {
-    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const handleMouseUp = () => {
+    if (isDragging && selectedElement) {
+      const element = elements.find(el => el.id === selectedElement);
+      if (element) {
+        addToHistory(elements);
+      }
+    }
+    setIsDragging(false);
+    setDragOffset({ x: 0, y: 0 });
+  };
+
+  const generateThumbnail = (): string => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+    
+    if (ctx) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 400, 300);
+      
+      const scaleX = 400 / canvasSize.width;
+      const scaleY = 300 / canvasSize.height;
+      const scale = Math.min(scaleX, scaleY);
+      
+      elements.forEach(element => {
+        ctx.save();
+        ctx.globalAlpha = element.opacity || 1;
+        
+        const x = element.x * scale;
+        const y = element.y * scale;
+        const width = element.width * scale;
+        const height = element.height * scale;
+        
+        if (element.type === 'text') {
+          ctx.fillStyle = element.color || '#000000';
+          ctx.font = `${element.fontWeight || 'normal'} ${element.fontStyle || 'normal'} ${(element.fontSize || 16) * scale}px ${element.fontFamily || 'Arial'}`;
+          ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
+          ctx.fillText(element.content || '', x, y + height / 2);
+        } else if (element.type === 'shape') {
+          ctx.fillStyle = element.backgroundColor || '#3B82F6';
+          if (element.borderWidth && element.borderWidth > 0) {
+            ctx.strokeStyle = element.borderColor || '#000000';
+            ctx.lineWidth = element.borderWidth * scale;
+          }
+          
+          if (element.content === 'circle') {
+            ctx.beginPath();
+            ctx.arc(x + width / 2, y + height / 2, width / 2, 0, 2 * Math.PI);
+            ctx.fill();
+            if (element.borderWidth && element.borderWidth > 0) ctx.stroke();
+          } else {
+            ctx.fillRect(x, y, width, height);
+            if (element.borderWidth && element.borderWidth > 0) ctx.strokeRect(x, y, width, height);
+          }
+        }
+        
+        ctx.restore();
+      });
+    }
+    
+    return canvas.toDataURL('image/png');
+  };
+
+  const saveTemplate = () => {
+    if (!templateName.trim()) {
+      alert('Please enter a template name');
+      return;
+    }
+
+    const newTemplate: Template = {
+      id: template?.id || `template-${Date.now()}`,
+      name: templateName.trim(),
+      category: templateCategory,
+      elements: [...elements],
+      canvasSize: { ...canvasSize },
+      thumbnail: generateThumbnail(),
+      createdAt: template?.createdAt || new Date().toISOString(),
+      downloads: template?.downloads || 0,
+      rating: template?.rating || 5.0,
+      author: template?.author || 'User'
+    };
+    
+    onSave(newTemplate);
+  };
+
+  const downloadPNG = async () => {
+    if (!canvasRef.current) return;
+    setIsExporting(true);
+    
+    try {
+      const canvas = await html2canvas(canvasRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: false
+      });
+
+      const link = document.createElement('a');
+      link.download = `${templateName || 'design'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      console.log('PNG download successful');
+    } catch (error) {
+      console.error('PNG download failed:', error);
+      alert('PNG download failed');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const downloadJPEG = async () => {
+    if (!canvasRef.current) return;
+    setIsExporting(true);
+    
+    try {
+      const canvas = await html2canvas(canvasRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: false
+      });
+
+      const link = document.createElement('a');
+      link.download = `${templateName || 'design'}.jpeg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.9);
+      link.click();
+      
+      console.log('JPEG download successful');
+    } catch (error) {
+      console.error('JPEG download failed:', error);
+      alert('JPEG download failed');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const downloadJPG = async () => {
+    if (!canvasRef.current) return;
+    setIsExporting(true);
+    
+    try {
+      const canvas = await html2canvas(canvasRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: false
+      });
+
+      const link = document.createElement('a');
+      link.download = `${templateName || 'design'}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.9);
+      link.click();
+      
+      console.log('JPG download successful');
+    } catch (error) {
+      console.error('JPG download failed:', error);
+      alert('JPG download failed');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const downloadPDF = async () => {
+    if (!canvasRef.current) return;
+    setIsExporting(true);
+    
+    try {
+      const canvas = await html2canvas(canvasRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: false
+      });
+
+      const pdf = new jsPDF({
+        orientation: canvasSize.width > canvasSize.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvasSize.width, canvasSize.height]
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, canvasSize.width, canvasSize.height);
+      pdf.save(`${templateName || 'design'}.pdf`);
+      
+      console.log('PDF download successful');
+    } catch (error) {
+      console.error('PDF download failed:', error);
+      alert('PDF download failed');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const exportDesign = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) {
+      console.error('Canvas not found');
+      alert('Canvas not found');
+      return;
+    }
 
+    setIsExporting(true);
+    console.log('Starting export process...');
+    
     try {
-      const canvas = await html2canvas(canvasRef.current, {
+      // Create a temporary div that mimics the canvas for html2canvas
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.top = '-9999px';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = `${canvasSize.width}px`;
+      tempDiv.style.height = `${canvasSize.height}px`;
+      tempDiv.style.backgroundColor = '#ffffff';
+      document.body.appendChild(tempDiv);
+
+      // Clone elements into the temp div
+      elements
+        .sort((a, b) => a.zIndex - b.zIndex)
+        .forEach((element) => {
+          const elementDiv = document.createElement('div');
+          elementDiv.style.position = 'absolute';
+          elementDiv.style.left = `${element.x}px`;
+          elementDiv.style.top = `${element.y}px`;
+          elementDiv.style.width = `${element.width}px`;
+          elementDiv.style.height = `${element.height}px`;
+          elementDiv.style.transform = `rotate(${element.rotation || 0}deg)`;
+          elementDiv.style.opacity = `${element.opacity || 1}`;
+
+          if (element.type === 'text') {
+            elementDiv.style.color = element.color || '#000000';
+            elementDiv.style.fontSize = `${element.fontSize || 16}px`;
+            elementDiv.style.fontFamily = element.fontFamily || 'Arial';
+            elementDiv.style.fontWeight = element.fontWeight || 'normal';
+            elementDiv.style.fontStyle = element.fontStyle || 'normal';
+            elementDiv.style.textDecoration = element.textDecoration || 'none';
+            elementDiv.style.textAlign = element.textAlign || 'left';
+            elementDiv.style.display = 'flex';
+            elementDiv.style.alignItems = 'center';
+            elementDiv.style.padding = '4px';
+            elementDiv.textContent = element.content || '';
+          } else if (element.type === 'shape') {
+            elementDiv.style.backgroundColor = element.backgroundColor || '#3B82F6';
+            if (element.borderWidth && element.borderWidth > 0) {
+              elementDiv.style.border = `${element.borderWidth}px solid ${element.borderColor || '#000000'}`;
+            }
+            
+            if (element.content === 'circle') {
+              elementDiv.style.borderRadius = '50%';
+            } else if (element.content === 'triangle') {
+              elementDiv.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+            } else if (element.content === 'star') {
+              elementDiv.style.clipPath = 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
+            } else if (element.content === 'heart') {
+              elementDiv.style.borderRadius = '50px 50px 0 0';
+              elementDiv.style.transform += ' rotate(-45deg)';
+            } else if (element.content === 'hexagon') {
+              elementDiv.style.clipPath = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+            }
+          } else if (element.type === 'image' && element.src) {
+            const img = document.createElement('img');
+            img.src = element.src;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            elementDiv.appendChild(img);
+          }
+
+          tempDiv.appendChild(elementDiv);
+        });
+
+      console.log('Capturing canvas with html2canvas...');
+      const canvas = await html2canvas(tempDiv, {
         scale: exportQuality,
         backgroundColor: '#ffffff',
         useCORS: true,
         allowTaint: false,
-        logging: false,
         width: canvasSize.width,
         height: canvasSize.height
       });
 
-      const fileName = templateName || 'design';
+      // Remove temp div
+      document.body.removeChild(tempDiv);
+
+      const fileName = (templateName || 'design').replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
       if (exportFormat === 'pdf') {
+        console.log('Creating PDF...');
+        const { jsPDF } = await import('jspdf');
+        
         const pdf = new jsPDF({
           orientation: canvasSize.width > canvasSize.height ? 'landscape' : 'portrait',
           unit: 'px',
@@ -466,7 +619,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
         const imgData = canvas.toDataURL('image/png', 1.0);
         pdf.addImage(imgData, 'PNG', 0, 0, canvasSize.width, canvasSize.height);
         pdf.save(`${fileName}.pdf`);
+        console.log('PDF saved successfully');
       } else {
+        console.log(`Creating ${exportFormat.toUpperCase()} image...`);
         const mimeType = exportFormat === 'jpg' || exportFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
         const extension = exportFormat === 'jpg' ? 'jpg' : exportFormat;
         
@@ -476,53 +631,60 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
             const link = document.createElement('a');
             link.href = url;
             link.download = `${fileName}.${extension}`;
+            link.style.display = 'none';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
+            console.log(`${extension.toUpperCase()} downloaded successfully`);
+          } else {
+            throw new Error('Failed to create blob');
           }
         }, mimeType, exportQuality);
       }
 
       setShowExportModal(false);
+      console.log('Export completed successfully');
+      alert(`Design exported successfully as ${exportFormat.toUpperCase()}!`);
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const selectedEl = elements.find(el => el.id === selectedElement);
 
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      const toolMap: { [key: string]: string } = {
-        'v': 'move',
-        'm': 'marquee',
-        'l': 'lasso',
-        'w': 'quick-select',
-        'b': 'brush',
-        'e': 'eraser',
-        's': 'clone',
-        'j': 'healing',
-        'o': 'dodge',
-        'c': 'crop',
-        'i': 'eyedropper',
-        'g': 'paint-bucket',
-        't': 'text'
-      };
-      
-      if (toolMap[key]) {
-        setSelectedTool(toolMap[key]);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  const toolbarItems = [
+    { id: 'select', icon: MousePointer2, label: 'Select', action: () => setActiveTool('select') },
+    { id: 'move', icon: Hand, label: 'Move', action: () => setActiveTool('move') },
+    { id: 'text', icon: Type, label: 'Text', action: addTextElement },
+    { id: 'rectangle', icon: Square, label: 'Rectangle', action: () => addShapeElement('rectangle') },
+    { id: 'circle', icon: Circle, label: 'Circle', action: () => addShapeElement('circle') },
+    { id: 'triangle', icon: Triangle, label: 'Triangle', action: () => addShapeElement('triangle') },
+    { id: 'star', icon: Star, label: 'Star', action: () => addShapeElement('star') },
+    { id: 'heart', icon: Heart, label: 'Heart', action: () => addShapeElement('heart') },
+    { id: 'hexagon', icon: Hexagon, label: 'Hexagon', action: () => addShapeElement('hexagon') },
+    { id: 'image', icon: Image, label: 'Image', action: () => fileInputRef.current?.click() },
+    { id: 'pen', icon: Pen, label: 'Pen', action: () => setActiveTool('pen') },
+    { id: 'brush', icon: Brush, label: 'Brush', action: () => setActiveTool('brush') },
+    { id: 'eraser', icon: Eraser, label: 'Eraser', action: () => setActiveTool('eraser') },
+    { id: 'fill', icon: PaintBucket, label: 'Fill', action: () => setActiveTool('fill') },
+    { id: 'eyedropper', icon: Eye, label: 'Eyedropper', action: () => setActiveTool('eyedropper') },
+    { id: 'crop', icon: Crop, label: 'Crop', action: () => setActiveTool('crop') },
+    { id: 'blur', icon: Focus, label: 'Blur', action: () => setActiveTool('blur') },
+    { id: 'sharpen', icon: Zap, label: 'Sharpen', action: () => setActiveTool('sharpen') },
+    { id: 'filter', icon: Filter, label: 'Filter', action: () => setActiveTool('filter') },
+    { id: 'cut', icon: Scissors, label: 'Cut', action: () => setActiveTool('cut') },
+    { id: 'rotate', icon: RotateCw, label: 'Rotate', action: () => selectedElement && rotateElement(selectedElement) },
+    { id: 'flip-h', icon: FlipHorizontal, label: 'Flip Horizontal', action: () => selectedElement && flipElement(selectedElement, 'horizontal') },
+    { id: 'flip-v', icon: FlipVertical, label: 'Flip Vertical', action: () => selectedElement && flipElement(selectedElement, 'vertical') },
+    { id: 'more', icon: MoreHorizontal, label: 'More', action: () => setActiveTool('more') }
+  ];
 
   return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex text-white">
+    <div className="fixed inset-0 bg-gray-900 z-50 flex">
       {showExportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 z-60 flex items-center justify-center">
           <div className="bg-gray-800 rounded-lg p-6 w-96 max-w-full mx-4 text-white">
@@ -538,7 +700,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
                       onClick={() => setExportFormat(format)}
                       className={`p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
                         exportFormat === format
-                          ? 'border-blue-500 bg-blue-600 text-white'
+                          ? 'border-blue-500 bg-blue-900 text-blue-300'
                           : 'border-gray-600 text-gray-300 hover:border-gray-500'
                       }`}
                     >
@@ -555,12 +717,12 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
                   </label>
                   <input
                     type="range"
-                    min="0.1"
+                    min="0.5"
                     max="3"
                     step="0.1"
                     value={exportQuality}
                     onChange={(e) => setExportQuality(parseFloat(e.target.value))}
-                    className="w-full"
+                    className="w-full accent-blue-500"
                   />
                   <div className="flex justify-between text-xs text-gray-400 mt-1">
                     <span>Low</span>
@@ -570,6 +732,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
               )}
 
               <div className="text-sm text-gray-400 bg-gray-700 p-3 rounded">
+                <p><strong>Name:</strong> {templateName}</p>
                 <p><strong>Size:</strong> {canvasSize.width} × {canvasSize.height}px</p>
                 <p><strong>Elements:</strong> {elements.length}</p>
               </div>
@@ -578,71 +741,67 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setShowExportModal(false)}
-                className="flex-1 bg-gray-600 text-gray-200 py-2 px-4 rounded font-medium hover:bg-gray-500 transition-colors"
+                disabled={isExporting}
+                className="flex-1 bg-gray-600 text-gray-300 py-2 px-4 rounded font-medium hover:bg-gray-500 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={exportDesign}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
+                disabled={isExporting}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded font-medium hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Export
+                {isExporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="w-20 bg-gray-800 flex flex-col border-r border-gray-700">
-        <div className="p-2">
-          <h3 className="text-xs font-semibold text-gray-400 mb-2">Tools</h3>
-          {toolCategories.map((category) => (
-            <div key={category.name} className="mb-4">
-              <div className="text-xs text-gray-500 mb-1">{category.name}</div>
-              {category.tools.map((tool) => {
-                const IconComponent = tool.icon;
-                return (
-                  <button
-                    key={tool.id}
-                    onClick={() => {
-                      setSelectedTool(tool.id);
-                      if (tool.id === 'upload') {
-                        fileInputRef.current?.click();
-                      } else if (tool.id === 'text') {
-                        addTextElement();
-                      } else if (tool.id === 'shape') {
-                        addShapeElement('rectangle');
-                      }
-                    }}
-                    className={`w-full flex flex-col items-center p-2 mb-1 rounded transition-colors ${
-                      selectedTool === tool.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                    }`}
-                    title={`${tool.name} (${tool.shortcut})`}
-                  >
-                    <IconComponent className="h-4 w-4" />
-                    <span className="text-xs mt-1">{tool.name}</span>
-                  </button>
-                );
-              })}
+      <div className="bg-gray-800 w-16 flex flex-col items-center py-4 space-y-1 overflow-y-auto">
+        {toolbarItems.map((tool) => (
+          <button
+            key={tool.id}
+            onClick={() => {
+              setActiveTool(tool.id);
+              if (tool.action) tool.action();
+            }}
+            className={`p-2 rounded-lg transition-colors group relative ${
+              activeTool === tool.id
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+            }`}
+            title={tool.label}
+          >
+            <tool.icon className="h-4 w-4" />
+            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
+              {tool.label}
             </div>
-          ))}
-        </div>
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
+          </button>
+        ))}
       </div>
 
-      <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col max-h-screen overflow-y-auto">
+      <div className="w-80 bg-gray-800 text-white shadow-lg flex flex-col max-h-screen overflow-hidden border-l border-gray-700">
         <div className="p-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">Template Editor</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Template Editor</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           
           <div className="space-y-3">
             <input
@@ -650,445 +809,336 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
               placeholder="Template name"
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
             />
             
             <select
               value={templateCategory}
               onChange={(e) => setTemplateCategory(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
             >
               <option value="business-cards">Business Cards</option>
               <option value="flyers">Flyers</option>
               <option value="brochures">Brochures</option>
               <option value="banners">Banners</option>
               <option value="merchandise">Merchandise</option>
+              <option value="logos">Logos</option>
+              <option value="posters">Posters</option>
+              <option value="social-media">Social Media</option>
             </select>
           </div>
         </div>
 
         <div className="p-4 border-b border-gray-700">
-          <h3 className="font-semibold text-white mb-3">Add Elements</h3>
-          <div className="grid grid-cols-3 gap-2">
+          <h3 className="font-semibold mb-3">Download Options</h3>
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={addTextElement}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              onClick={downloadPNG}
+              disabled={isExporting}
+              className="bg-blue-600 text-white py-2 px-3 rounded font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm flex items-center justify-center"
             >
-              <Type className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Text</span>
+              {isExporting ? '...' : 'PNG'}
             </button>
-            
             <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              onClick={downloadJPEG}
+              disabled={isExporting}
+              className="bg-green-600 text-white py-2 px-3 rounded font-medium hover:bg-green-700 transition-colors disabled:opacity-50 text-sm flex items-center justify-center"
             >
-              <Image className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Image</span>
+              {isExporting ? '...' : 'JPEG'}
             </button>
-            
             <button
-              onClick={() => addShapeElement('rectangle')}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              onClick={downloadJPG}
+              disabled={isExporting}
+              className="bg-purple-600 text-white py-2 px-3 rounded font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 text-sm flex items-center justify-center"
             >
-              <Square className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Rect</span>
+              {isExporting ? '...' : 'JPG'}
             </button>
-            
             <button
-              onClick={() => addShapeElement('circle')}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              onClick={downloadPDF}
+              disabled={isExporting}
+              className="bg-red-600 text-white py-2 px-3 rounded font-medium hover:bg-red-700 transition-colors disabled:opacity-50 text-sm flex items-center justify-center"
             >
-              <Circle className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Circle</span>
-            </button>
-
-            <button
-              onClick={() => addShapeElement('triangle')}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              <Triangle className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Triangle</span>
-            </button>
-
-            <button
-              onClick={() => addShapeElement('star')}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              <Star className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Star</span>
-            </button>
-
-            <button
-              onClick={() => addLineElement('line')}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              <Minus className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Line</span>
-            </button>
-
-            <button
-              onClick={() => addLineElement('arrow')}
-              className="flex flex-col items-center p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              <ArrowRight className="h-5 w-5 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-300">Arrow</span>
+              {isExporting ? '...' : 'PDF'}
             </button>
           </div>
         </div>
 
-        {(selectedTool === 'brush' || selectedTool === 'pencil') && (
-          <div className="p-4 border-b border-gray-700">
-            <h3 className="font-semibold text-white mb-3">Brush Settings</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Size: {brushSize}px</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={brushSize}
-                  onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Color</label>
-                <input
-                  type="color"
-                  value={brushColor}
-                  onChange={(e) => setBrushColor(e.target.value)}
-                  className="w-full h-8 border border-gray-600 rounded"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedEl && (
-          <div className="p-4 border-b border-gray-700 flex-1 overflow-y-auto">
-            <h3 className="font-semibold text-white mb-3">Properties</h3>
-            
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">X</label>
-                  <input
-                    type="number"
-                    value={Math.round(selectedEl.x)}
-                    onChange={(e) => updateElement(selectedEl.id, { x: parseInt(e.target.value) })}
-                    className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">Y</label>
-                  <input
-                    type="number"
-                    value={Math.round(selectedEl.y)}
-                    onChange={(e) => updateElement(selectedEl.id, { y: parseInt(e.target.value) })}
-                    className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                  />
-                </div>
-              </div>
+        <div className="flex-1 overflow-y-auto">
+          {selectedEl && (
+            <div className="p-4 border-b border-gray-700">
+              <h3 className="font-semibold mb-3">Properties</h3>
               
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">Width</label>
-                  <input
-                    type="number"
-                    value={Math.round(selectedEl.width)}
-                    onChange={(e) => updateElement(selectedEl.id, { width: parseInt(e.target.value) })}
-                    className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">Height</label>
-                  <input
-                    type="number"
-                    value={Math.round(selectedEl.height)}
-                    onChange={(e) => updateElement(selectedEl.id, { height: parseInt(e.target.value) })}
-                    className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Opacity: {Math.round((selectedEl.opacity || 1) * 100)}%</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={selectedEl.opacity || 1}
-                  onChange={(e) => updateElement(selectedEl.id, { opacity: parseFloat(e.target.value) })}
-                  className="w-full"
-                />
-              </div>
-
-              {selectedEl.type === 'text' && (
-                <>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Text</label>
-                    <textarea
-                      value={selectedEl.content || ''}
-                      onChange={(e) => updateElement(selectedEl.id, { content: e.target.value })}
-                      className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Font Size</label>
-                      <input
-                        type="number"
-                        value={selectedEl.fontSize || 16}
-                        onChange={(e) => updateElement(selectedEl.id, { fontSize: parseInt(e.target.value) })}
-                        className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Font Family</label>
-                      <select
-                        value={selectedEl.fontFamily || 'Arial'}
-                        onChange={(e) => updateElement(selectedEl.id, { fontFamily: e.target.value })}
-                        className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                      >
-                        <option value="Arial">Arial</option>
-                        <option value="Times New Roman">Times</option>
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Georgia">Georgia</option>
-                        <option value="Verdana">Verdana</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-2">Text Style</label>
-                    <div className="flex space-x-1">
-                      <button
-                        onClick={() => updateElement(selectedEl.id, { 
-                          fontWeight: selectedEl.fontWeight === 'bold' ? 'normal' : 'bold' 
-                        })}
-                        className={`p-1 rounded text-xs ${
-                          selectedEl.fontWeight === 'bold' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-                        }`}
-                      >
-                        <Bold className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => updateElement(selectedEl.id, { 
-                          fontStyle: selectedEl.fontStyle === 'italic' ? 'normal' : 'italic' 
-                        })}
-                        className={`p-1 rounded text-xs ${
-                          selectedEl.fontStyle === 'italic' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-                        }`}
-                      >
-                        <Italic className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => updateElement(selectedEl.id, { 
-                          textDecoration: selectedEl.textDecoration === 'underline' ? 'none' : 'underline' 
-                        })}
-                        className={`p-1 rounded text-xs ${
-                          selectedEl.textDecoration === 'underline' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-                        }`}
-                      >
-                        <Underline className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-2">Text Align</label>
-                    <div className="flex space-x-1">
-                      <button
-                        onClick={() => alignElements('left')}
-                        className={`p-1 rounded text-xs ${
-                          selectedEl.textAlign === 'left' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-                        }`}
-                      >
-                        <AlignLeft className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => alignElements('center')}
-                        className={`p-1 rounded text-xs ${
-                          selectedEl.textAlign === 'center' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-                        }`}
-                      >
-                        <AlignCenter className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => alignElements('right')}
-                        className={`p-1 rounded text-xs ${
-                          selectedEl.textAlign === 'right' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-                        }`}
-                      >
-                        <AlignRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Color</label>
-                    <input
-                      type="color"
-                      value={selectedEl.color || '#000000'}
-                      onChange={(e) => updateElement(selectedEl.id, { color: e.target.value })}
-                      className="w-full h-8 border border-gray-600 rounded"
-                    />
-                  </div>
-                </>
-              )}
-
-              {selectedEl.type === 'shape' && (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Background Color</label>
-                    <input
-                      type="color"
-                      value={selectedEl.backgroundColor || '#3B82F6'}
-                      onChange={(e) => updateElement(selectedEl.id, { backgroundColor: e.target.value })}
-                      className="w-full h-8 border border-gray-600 rounded"
-                    />
-                  </div>
-                  {selectedEl.content === 'rectangle' && (
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Border Radius</label>
-                      <input
-                        type="number"
-                        value={selectedEl.borderRadius || 0}
-                        onChange={(e) => updateElement(selectedEl.id, { borderRadius: parseInt(e.target.value) })}
-                        className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                        min="0"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {(selectedEl.type === 'line' || selectedEl.type === 'arrow') && (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Color</label>
-                    <input
-                      type="color"
-                      value={selectedEl.color || '#000000'}
-                      onChange={(e) => updateElement(selectedEl.id, { color: e.target.value })}
-                      className="w-full h-8 border border-gray-600 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Stroke Width</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">X</label>
                     <input
                       type="number"
-                      value={selectedEl.strokeWidth || 2}
-                      onChange={(e) => updateElement(selectedEl.id, { strokeWidth: parseInt(e.target.value) })}
+                      value={Math.round(selectedEl.x)}
+                      onChange={(e) => updateElement(selectedEl.id, { x: parseInt(e.target.value) || 0 })}
+                      onBlur={(e) => commitElementUpdate(selectedEl.id, { x: parseInt(e.target.value) || 0 })}
                       className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
-                      min="1"
                     />
                   </div>
-                </>
-              )}
-
-              {selectedEl.type === 'image' && (
-                <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Filters</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Y</label>
+                    <input
+                      type="number"
+                      value={Math.round(selectedEl.y)}
+                      onChange={(e) => updateElement(selectedEl.id, { y: parseInt(e.target.value) || 0 })}
+                      onBlur={(e) => commitElementUpdate(selectedEl.id, { y: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Width</label>
+                    <input
+                      type="number"
+                      value={Math.round(selectedEl.width)}
+                      onChange={(e) => updateElement(selectedEl.id, { width: parseInt(e.target.value) || 1 })}
+                      onBlur={(e) => commitElementUpdate(selectedEl.id, { width: parseInt(e.target.value) || 1 })}
+                      className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Height</label>
+                    <input
+                      type="number"
+                      value={Math.round(selectedEl.height)}
+                      onChange={(e) => updateElement(selectedEl.id, { height: parseInt(e.target.value) || 1 })}
+                      onBlur={(e) => commitElementUpdate(selectedEl.id, { height: parseInt(e.target.value) || 1 })}
+                      className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Opacity</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={selectedEl.opacity || 1}
+                    onChange={(e) => updateElement(selectedEl.id, { opacity: parseFloat(e.target.value) })}
+                    onMouseUp={(e) => commitElementUpdate(selectedEl.id, { opacity: parseFloat((e.target as HTMLInputElement).value) })}
+                    className="w-full accent-blue-500"
+                  />
+                  <span className="text-xs text-gray-400">{Math.round((selectedEl.opacity || 1) * 100)}%</span>
+                </div>
+
+                {selectedEl.type === 'text' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Text</label>
+                      <textarea
+                        value={selectedEl.content || ''}
+                        onChange={(e) => updateElement(selectedEl.id, { content: e.target.value })}
+                        onBlur={(e) => commitElementUpdate(selectedEl.id, { content: e.target.value })}
+                        className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
+                        rows={2}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Font Size</label>
+                        <input
+                          type="number"
+                          value={selectedEl.fontSize || 16}
+                          onChange={(e) => updateElement(selectedEl.id, { fontSize: parseInt(e.target.value) || 16 })}
+                          onBlur={(e) => commitElementUpdate(selectedEl.id, { fontSize: parseInt(e.target.value) || 16 })}
+                          className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Font Family</label>
+                        <select
+                          value={selectedEl.fontFamily || 'Arial'}
+                          onChange={(e) => commitElementUpdate(selectedEl.id, { fontFamily: e.target.value })}
+                          className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
+                        >
+                          <option value="Arial">Arial</option>
+                          <option value="Times New Roman">Times</option>
+                          <option value="Helvetica">Helvetica</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Text Color</label>
+                      <input
+                        type="color"
+                        value={selectedEl.color || '#000000'}
+                        onChange={(e) => updateElement(selectedEl.id, { color: e.target.value })}
+                        onBlur={(e) => commitElementUpdate(selectedEl.id, { color: e.target.value })}
+                        className="w-full h-8 bg-gray-700 border border-gray-600 rounded"
+                      />
+                    </div>
+
                     <div className="space-y-2">
+                      <label className="block text-xs font-medium text-gray-400">Text Style</label>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => commitElementUpdate(selectedEl.id, { fontWeight: selectedEl.fontWeight === 'bold' ? 'normal' : 'bold' })}
+                          className={`p-2 rounded ${selectedEl.fontWeight === 'bold' ? 'bg-blue-600' : 'bg-gray-600'} text-white`}
+                        >
+                          <Bold className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => commitElementUpdate(selectedEl.id, { fontStyle: selectedEl.fontStyle === 'italic' ? 'normal' : 'italic' })}
+                          className={`p-2 rounded ${selectedEl.fontStyle === 'italic' ? 'bg-blue-600' : 'bg-gray-600'} text-white`}
+                        >
+                          <Italic className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => commitElementUpdate(selectedEl.id, { textDecoration: selectedEl.textDecoration === 'underline' ? 'none' : 'underline' })}
+                          className={`p-2 rounded ${selectedEl.textDecoration === 'underline' ? 'bg-blue-600' : 'bg-gray-600'} text-white`}
+                        >
+                          <Underline className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-gray-400">Text Align</label>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => commitElementUpdate(selectedEl.id, { textAlign: 'left' })}
+                          className={`p-2 rounded ${selectedEl.textAlign === 'left' ? 'bg-blue-600' : 'bg-gray-600'} text-white`}
+                        >
+                          <AlignLeft className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => commitElementUpdate(selectedEl.id, { textAlign: 'center' })}
+                          className={`p-2 rounded ${selectedEl.textAlign === 'center' ? 'bg-blue-600' : 'bg-gray-600'} text-white`}
+                        >
+                          <AlignCenter className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => commitElementUpdate(selectedEl.id, { textAlign: 'right' })}
+                          className={`p-2 rounded ${selectedEl.textAlign === 'right' ? 'bg-blue-600' : 'bg-gray-600'} text-white`}
+                        >
+                          <AlignRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {selectedEl.type === 'shape' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Background Color</label>
+                      <input
+                        type="color"
+                        value={selectedEl.backgroundColor || '#3B82F6'}
+                        onChange={(e) => updateElement(selectedEl.id, { backgroundColor: e.target.value })}
+                        onBlur={(e) => commitElementUpdate(selectedEl.id, { backgroundColor: e.target.value })}
+                        className="w-full h-8 bg-gray-700 border border-gray-600 rounded"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs text-gray-400 mb-1">Blur: {selectedEl.blur || 0}px</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Border Width</label>
                         <input
-                          type="range"
+                          type="number"
                           min="0"
-                          max="20"
-                          value={selectedEl.blur || 0}
-                          onChange={(e) => applyFilter('blur', parseInt(e.target.value))}
-                          className="w-full"
+                          value={selectedEl.borderWidth || 0}
+                          onChange={(e) => updateElement(selectedEl.id, { borderWidth: parseInt(e.target.value) || 0 })}
+                          onBlur={(e) => commitElementUpdate(selectedEl.id, { borderWidth: parseInt(e.target.value) || 0 })}
+                          className="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-400 mb-1">Brightness: {Math.round((selectedEl.brightness || 1) * 100)}%</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Border Color</label>
                         <input
-                          type="range"
-                          min="0"
-                          max="2"
-                          step="0.1"
-                          value={selectedEl.brightness || 1}
-                          onChange={(e) => applyFilter('brightness', parseFloat(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">Contrast: {Math.round((selectedEl.contrast || 1) * 100)}%</label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="2"
-                          step="0.1"
-                          value={selectedEl.contrast || 1}
-                          onChange={(e) => applyFilter('contrast', parseFloat(e.target.value))}
-                          className="w-full"
+                          type="color"
+                          value={selectedEl.borderColor || '#000000'}
+                          onChange={(e) => updateElement(selectedEl.id, { borderColor: e.target.value })}
+                          onBlur={(e) => commitElementUpdate(selectedEl.id, { borderColor: e.target.value })}
+                          className="w-full h-8 bg-gray-700 border border-gray-600 rounded"
                         />
                       </div>
                     </div>
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-gray-400">Actions</label>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      onClick={() => duplicateElement(selectedEl.id)}
+                      className="bg-blue-900 text-blue-300 py-1 px-2 rounded text-xs hover:bg-blue-800 transition-colors flex items-center justify-center"
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => deleteElement(selectedEl.id)}
+                      className="bg-red-900 text-red-300 py-1 px-2 rounded text-xs hover:bg-red-800 transition-colors flex items-center justify-center"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => bringToFront(selectedEl.id)}
+                      className="bg-green-900 text-green-300 py-1 px-2 rounded text-xs hover:bg-green-800 transition-colors flex items-center justify-center"
+                    >
+                      <Layers className="h-3 w-3 mr-1" />
+                      Front
+                    </button>
+                    <button
+                      onClick={() => sendToBack(selectedEl.id)}
+                      className="bg-purple-900 text-purple-300 py-1 px-2 rounded text-xs hover:bg-purple-800 transition-colors flex items-center justify-center"
+                    >
+                      <Layers className="h-3 w-3 mr-1" />
+                      Back
+                    </button>
                   </div>
                 </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Rotation</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  value={selectedEl.rotation || 0}
-                  onChange={(e) => updateElement(selectedEl.id, { rotation: parseInt(e.target.value) })}
-                  className="w-full"
-                />
-                <div className="text-xs text-gray-400 text-center">{selectedEl.rotation || 0}°</div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-2">Layer</label>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => moveElementLayer(selectedEl.id, 'up')}
-                    className="flex-1 bg-gray-700 text-gray-300 py-1 px-2 rounded text-xs hover:bg-gray-600 transition-colors flex items-center justify-center"
-                  >
-                    <ChevronUp className="h-3 w-3 mr-1" />
-                    Up
-                  </button>
-                  <button
-                    onClick={() => moveElementLayer(selectedEl.id, 'down')}
-                    className="flex-1 bg-gray-700 text-gray-300 py-1 px-2 rounded text-xs hover:bg-gray-600 transition-colors flex items-center justify-center"
-                  >
-                    <ChevronDown className="h-3 w-3 mr-1" />
-                    Down
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => duplicateElement(selectedEl.id)}
-                  className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-xs hover:bg-blue-700 transition-colors flex items-center justify-center"
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy
-                </button>
-                <button
-                  onClick={() => deleteElement(selectedEl.id)}
-                  className="flex-1 bg-red-600 text-white py-2 px-3 rounded text-xs hover:bg-red-700 transition-colors flex items-center justify-center"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete
-                </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="p-4 border-t border-gray-700">
+          <div className="p-4 border-b border-gray-700">
+            <h3 className="font-semibold mb-3">Layers</h3>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {elements
+                .sort((a, b) => b.zIndex - a.zIndex)
+                .map((element) => (
+                  <div
+                    key={element.id}
+                    onClick={() => setSelectedElement(element.id)}
+                    className={`p-2 rounded cursor-pointer transition-colors ${
+                      selectedElement === element.id
+                        ? 'bg-blue-900 text-blue-300'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      {element.type === 'text' && <Type className="h-4 w-4" />}
+                      {element.type === 'image' && <Image className="h-4 w-4" />}
+                      {element.type === 'shape' && <Square className="h-4 w-4" />}
+                      <span className="text-sm truncate">
+                        {element.type === 'text' ? (element.content || 'Text').substring(0, 15) : 
+                         element.type === 'image' ? 'Image' : 
+                         element.content || 'Shape'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-700 bg-gray-800">
           <div className="flex space-x-2 mb-3">
             <button
               onClick={undo}
@@ -1108,130 +1158,86 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
             </button>
           </div>
           
-          <div className="space-y-2">
-            <button
-              onClick={saveTemplate}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Template
-            </button>
-            
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="w-full bg-green-600 text-white py-2 px-4 rounded font-medium hover:bg-green-700 transition-colors flex items-center justify-center"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Design
-            </button>
-            
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-600 text-white py-2 px-4 rounded font-medium hover:bg-gray-700 transition-colors"
-            >
-              Close Editor
-            </button>
-          </div>
+          <button
+            onClick={saveTemplate}
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Template
+          </button>
         </div>
       </div>
 
-      <div className="flex-1 bg-gray-700 flex flex-col">
+      <div className="flex-1 bg-gray-900 flex flex-col">
         <div className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h2 className="text-lg font-semibold text-white">Template Editor</h2>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
-                className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-gray-300"
+                className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-white"
               >
                 <ZoomOut className="h-4 w-4" />
               </button>
-              <span className="text-sm font-medium text-gray-300">{Math.round(zoom * 100)}%</span>
+              <span className="text-sm font-medium min-w-[60px] text-center text-white">{Math.round(zoom * 100)}%</span>
               <button
                 onClick={() => setZoom(Math.min(3, zoom + 0.25))}
-                className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-gray-300"
+                className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-white"
               >
                 <ZoomIn className="h-4 w-4" />
               </button>
             </div>
             
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-300">Canvas:</label>
+              <label className="text-sm font-medium text-white">Canvas:</label>
               <select
                 value={`${canvasSize.width}x${canvasSize.height}`}
                 onChange={(e) => {
                   const [width, height] = e.target.value.split('x').map(Number);
                   setCanvasSize({ width, height });
                 }}
-                className="px-3 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-gray-300"
+                className="px-3 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white"
               >
                 <option value="800x600">Business Card (800x600)</option>
                 <option value="1200x800">Flyer (1200x800)</option>
                 <option value="1600x900">Banner (1600x900)</option>
                 <option value="1000x1000">Square (1000x1000)</option>
+                <option value="1920x1080">HD (1920x1080)</option>
+                <option value="1080x1080">Instagram Square (1080x1080)</option>
+                <option value="1080x1920">Instagram Story (1080x1920)</option>
               </select>
             </div>
           </div>
           
           <div className="text-sm text-gray-400">
-            Elements: {elements.length} | Selected: {selectedElement ? '1' : '0'}
+            Elements: {elements.length} | Selected: {selectedElement ? '1' : '0'} | Tool: {activeTool}
           </div>
         </div>
 
         <div className="flex-1 overflow-auto p-8 flex items-center justify-center">
           <div
             ref={canvasRef}
-            className="bg-white shadow-lg relative border border-gray-600"
+            className="bg-white shadow-lg relative border"
             style={{
-              width: canvasSize.width,
-              height: canvasSize.height,
-              transform: `scale(${zoom})`,
-              transformOrigin: 'center',
-              cursor: selectedTool === 'move' ? 'move' : 
-                     selectedTool === 'brush' || selectedTool === 'pencil' ? 'crosshair' :
-                     selectedTool === 'eyedropper' ? 'copy' :
-                     selectedTool === 'crop' ? 'crosshair' : 'default'
+              width: canvasSize.width * zoom,
+              height: canvasSize.height * zoom,
             }}
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
             onClick={() => setSelectedElement(null)}
           >
-            <canvas
-              ref={drawingCanvasRef}
-              width={canvasSize.width}
-              height={canvasSize.height}
-              className="absolute inset-0 pointer-events-none"
-              style={{ zIndex: 1000 }}
-            />
-            
-            {selectionArea && (
-              <div
-                className="absolute border-2 border-dashed border-blue-500 bg-blue-100 bg-opacity-20"
-                style={{
-                  left: selectionArea.x,
-                  top: selectionArea.y,
-                  width: Math.abs(selectionArea.width),
-                  height: Math.abs(selectionArea.height),
-                  zIndex: 999
-                }}
-              />
-            )}
-
             {elements
               .sort((a, b) => a.zIndex - b.zIndex)
               .map((element) => (
                 <div
                   key={element.id}
                   className={`absolute cursor-move border-2 ${
-                    selectedElement === element.id ? 'border-blue-500' : 
-                    element.selected ? 'border-green-500' : 'border-transparent'
-                  } hover:border-blue-300`}
+                    selectedElement === element.id ? 'border-blue-500' : 'border-transparent'
+                  } hover:border-blue-300 transition-colors`}
                   style={{
-                    left: element.x,
-                    top: element.y,
-                    width: element.width,
-                    height: element.height,
+                    left: element.x * zoom,
+                    top: element.y * zoom,
+                    width: element.width * zoom,
+                    height: element.height * zoom,
                     transform: `rotate(${element.rotation || 0}deg)`,
                     zIndex: element.zIndex,
                     opacity: element.opacity || 1
@@ -1244,20 +1250,21 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
                 >
                   {element.type === 'text' && (
                     <div
-                      className="w-full h-full flex items-center justify-center"
+                      className="w-full h-full flex items-center p-1 overflow-hidden"
                       style={{
                         color: element.color,
-                        fontSize: element.fontSize,
+                        fontSize: (element.fontSize || 16) * zoom,
                         fontFamily: element.fontFamily,
                         fontWeight: element.fontWeight,
                         fontStyle: element.fontStyle,
                         textDecoration: element.textDecoration,
-                        textAlign: element.textAlign as any
+                        justifyContent: element.textAlign === 'center' ? 'center' : 
+                                       element.textAlign === 'right' ? 'flex-end' : 'flex-start'
                       }}
                       onDoubleClick={() => {
                         const newContent = prompt('Edit text:', element.content);
                         if (newContent !== null) {
-                          updateElement(element.id, { content: newContent });
+                          commitElementUpdate(element.id, { content: newContent });
                         }
                       }}
                     >
@@ -1265,14 +1272,11 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
                     </div>
                   )}
                   
-                  {element.type === 'image' && (
+                  {element.type === 'image' && element.src && (
                     <img
                       src={element.src}
                       alt="Element"
                       className="w-full h-full object-cover"
-                      style={{
-                        filter: `blur(${element.blur || 0}px) brightness(${element.brightness || 1}) contrast(${element.contrast || 1})`
-                      }}
                       draggable={false}
                     />
                   )}
@@ -1282,57 +1286,34 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ templateId, onSave, onC
                       className="w-full h-full"
                       style={{
                         backgroundColor: element.backgroundColor,
-                        borderRadius: element.content === 'circle' ? '50%' : `${element.borderRadius || 0}px`,
+                        borderRadius: element.content === 'circle' ? '50%' : 
+                                     element.content === 'hexagon' ? '10%' : '0',
+                        borderWidth: element.borderWidth || 0,
+                        borderColor: element.borderColor || '#000000',
+                        borderStyle: element.borderWidth ? 'solid' : 'none',
                         clipPath: element.content === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' :
                                  element.content === 'star' ? 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' :
+                                 element.content === 'heart' ? 'path("M12,21.35l-1.45-1.32C5.4,15.36,2,12.28,2,8.5 C2,5.42,4.42,3,7.5,3c1.74,0,3.41,0.81,4.5,2.09C13.09,3.81,14.76,3,16.5,3 C19.58,3,22,5.42,22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z")' :
+                                 element.content === 'hexagon' ? 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' :
                                  'none'
                       }}
                     />
-                  )}
-
-                  {element.type === 'line' && (
-                    <div
-                      className="w-full"
-                      style={{
-                        height: element.strokeWidth,
-                        backgroundColor: element.color,
-                        marginTop: `${(element.height - (element.strokeWidth || 2)) / 2}px`
-                      }}
-                    />
-                  )}
-
-                  {element.type === 'arrow' && (
-                    <div className="relative w-full h-full">
-                      <div
-                        className="absolute"
-                        style={{
-                          width: element.width - 10,
-                          height: element.strokeWidth,
-                          backgroundColor: element.color,
-                          top: `${(element.height - (element.strokeWidth || 2)) / 2}px`
-                        }}
-                      />
-                      <div
-                        className="absolute"
-                        style={{
-                          right: 0,
-                          top: `${element.height / 2 - 5}px`,
-                          width: 0,
-                          height: 0,
-                          borderLeft: `10px solid ${element.color}`,
-                          borderTop: '5px solid transparent',
-                          borderBottom: '5px solid transparent'
-                        }}
-                      />
-                    </div>
                   )}
                 </div>
               ))}
           </div>
         </div>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
     </div>
   );
 };
-
+` `
 export default TemplateEditor;

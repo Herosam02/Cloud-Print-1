@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Cloud, Menu, X, Phone, Mail } from 'lucide-react';
+import cloudprinticom from './Gemini_Generated_Image_29l8nx29l8nx29l8-removebg-preview.png'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,7 +47,7 @@ const Header = () => {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <Cloud className="h-8 w-8 text-blue-600" />
+              <img className="h-20 w-20" src={cloudprinticom} />
               <span className="text-2xl font-bold text-gray-900">Cloud Print</span>
               <span className="text-sm text-gray-500">.dev</span>
             </Link>

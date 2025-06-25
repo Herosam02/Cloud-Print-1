@@ -1,24 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Cloud, 
-  Printer, 
-  Clock, 
-  Shield, 
-  Truck, 
-  Palette, 
-  Users, 
+import {
+  Cloud,
+  Printer,
+  Clock,
+  Shield,
+  Truck,
+  Palette,
+  Users,
   CheckCircle,
   ArrowRight,
   Star,
   Zap,
   Globe,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MessageCircle,
+  Headphones,
+  ChartBarIcon as ChartBar
 } from 'lucide-react';
+import VoiceChat from '../components/VoiceChat';
 
 const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
+
+  const handleWhatsAppClick = () => {
+    // Try to open WhatsApp app first, fallback to web version
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // On mobile, try to open the WhatsApp app
+      window.location.href = "whatsapp://";
+    } else {
+      // On desktop, open WhatsApp Web
+      window.open("https://web.whatsapp.com/", "_blank", "noopener,noreferrer");
+    }
+  };
 
   const sliderImages = [
     {
@@ -126,6 +144,27 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Voice Chat Component */}
+      {showVoiceChat && (
+        <VoiceChat onClose={() => setShowVoiceChat(false)} />
+      )}
+
+      {/* Floating Voice Chat Button */}
+      <button
+        onClick={() => setShowVoiceChat(true)}
+        className="fixed bottom-20 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-40 group"
+        title="Start Voice Chat"
+      >
+        <div className="relative">
+          <Headphones className="h-6 w-6" />
+          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+        </div>
+        <div className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          Ask me anything about printing!
+          <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+        </div>
+      </button>
+
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
@@ -138,25 +177,26 @@ const HomePage = () => {
                   <span className="block text-blue-300">Revolutionized</span>
                 </h1>
                 <p className="text-xl text-blue-100 leading-relaxed">
-                  No printers, no maintenance, no hassle. Upload your designs, approve your jobs, 
+                  No printers, no maintenance, no hassle. Upload your designs, approve your jobs,
                   and receive professional prints delivered to your door in 24-48 hours.
                 </p>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link 
-                  to="/order" 
+                <Link
+                  to="/order"
                   className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
                 >
                   Start Printing Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-                <Link 
-                  to="/templates" 
+                <button
+                  onClick={() => setShowVoiceChat(true)}
                   className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-blue-600 transition-all duration-300 flex items-center justify-center"
                 >
-                  Browse Templates
-                </Link>
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  Ask Assistant
+                </button>
               </div>
 
               <div className="flex items-center space-x-8 text-blue-200">
@@ -183,15 +223,14 @@ const HomePage = () => {
                   {sliderImages.map((slide, index) => (
                     <div
                       key={index}
-                      className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-                        index === currentSlide 
-                          ? 'opacity-100 transform translate-x-0' 
-                          : index < currentSlide 
-                            ? 'opacity-0 transform -translate-x-full'
-                            : 'opacity-0 transform translate-x-full'
-                      }`}
+                      className={`absolute inset-0 transition-all duration-1000 ease-in-out ${index === currentSlide
+                        ? 'opacity-100 transform translate-x-0'
+                        : index < currentSlide
+                          ? 'opacity-0 transform -translate-x-full'
+                          : 'opacity-0 transform translate-x-full'
+                        }`}
                     >
-                      <img 
+                      <img
                         src={slide.url}
                         alt={slide.title}
                         className="w-full h-full object-cover"
@@ -227,11 +266,10 @@ const HomePage = () => {
                       <button
                         key={index}
                         onClick={() => setCurrentSlide(index)}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          index === currentSlide 
-                            ? 'bg-white scale-125' 
-                            : 'bg-white/50 hover:bg-white/75'
-                        }`}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlide
+                          ? 'bg-white scale-125'
+                          : 'bg-white/50 hover:bg-white/75'
+                          }`}
                       />
                     ))}
                   </div>
@@ -245,14 +283,8 @@ const HomePage = () => {
                   </div>
                   <div className="bg-gray-100 rounded-lg p-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Business Cards - 100 units</span>
-                      <span className="text-blue-600 font-semibold">₦30,000</span>
-                    </div>
-                  </div>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Business Cards - 50 units</span>
-                      <span className="text-blue-600 font-semibold">₦15,000</span>
+                      <span className="text-gray-600">Business Cards - 1000 units</span>
+                      <span className="text-blue-600 font-semibold">₦25,000</span>
                     </div>
                   </div>
                 </div>
@@ -262,6 +294,20 @@ const HomePage = () => {
         </div>
       </section>
 
+      <button
+        className="fixed bottom-3 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-40 group"
+        onClick={handleWhatsAppClick}
+      >
+        <div className="relative">
+          <MessageCircle className="h-6 w-6" />
+          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+        </div>
+        <div className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          Go to WhatsApp
+          <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+        </div>
+      </button>
+
       {/* Features Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -270,15 +316,15 @@ const HomePage = () => {
               Why Choose Cloud Print?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We've revolutionized printing by moving everything to the cloud. 
+              We've revolutionized printing by moving everything to the cloud.
               No equipment, no maintenance, just professional results delivered fast.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2"
               >
                 <div className="mb-4">{feature.icon}</div>
@@ -397,24 +443,24 @@ const HomePage = () => {
             Ready to Start Cloud Printing?
           </h2>
           <p className="text-xl mb-8 text-blue-100">
-            Join thousands of businesses who've eliminated printer costs and maintenance. 
+            Join thousands of businesses who've eliminated printer costs and maintenance.
             Get professional prints delivered fast with our cloud-based solution.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              to="/order" 
+            <Link
+              to="/order"
               className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
             >
               <Zap className="mr-2 h-5 w-5" />
               Start Your First Order
             </Link>
-            <Link 
-              to="/pricing" 
+            <button
+              onClick={() => setShowVoiceChat(true)}
               className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-blue-600 transition-all duration-300 flex items-center justify-center"
             >
-              <Globe className="mr-2 h-5 w-5" />
-              View Pricing Plans
-            </Link>
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Chat with Assistant
+            </button>
           </div>
         </div>
       </section>
