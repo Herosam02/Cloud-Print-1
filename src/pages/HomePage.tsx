@@ -20,6 +20,7 @@ import {
   ChartBarIcon as ChartBar
 } from 'lucide-react';
 import VoiceChat from '../components/VoiceChat';
+import WhatsAppIcon from './Whatsappicon';
 
 const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -28,7 +29,7 @@ const HomePage = () => {
   const handleWhatsAppClick = () => {
     // Try to open WhatsApp app first, fallback to web version
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
+
     if (isMobile) {
       // On mobile, try to open the WhatsApp app
       window.location.href = "whatsapp://";
@@ -145,12 +146,12 @@ const HomePage = () => {
   return (
     <div className="min-h-screen">
       {/* Voice Chat Component */}
-      {showVoiceChat && (
+      {/* {showVoiceChat && (
         <VoiceChat onClose={() => setShowVoiceChat(false)} />
-      )}
+      )} */}
 
       {/* Floating Voice Chat Button */}
-      <button
+      {/* <button
         onClick={() => setShowVoiceChat(true)}
         className="fixed bottom-20 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-40 group"
         title="Start Voice Chat"
@@ -163,7 +164,7 @@ const HomePage = () => {
           Ask me anything about printing!
           <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
         </div>
-      </button>
+      </button> */}
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
@@ -190,13 +191,13 @@ const HomePage = () => {
                   Start Printing Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-                <button
-                  onClick={() => setShowVoiceChat(true)}
-                  className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-blue-600 transition-all duration-300 flex items-center justify-center"
+                <Link
+                  to="/professionals"
+                  className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
                 >
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Ask Assistant
-                </button>
+                  Professionals
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
               </div>
 
               <div className="flex items-center space-x-8 text-blue-200">
@@ -283,8 +284,14 @@ const HomePage = () => {
                   </div>
                   <div className="bg-gray-100 rounded-lg p-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Business Cards - 1000 units</span>
-                      <span className="text-blue-600 font-semibold">₦25,000</span>
+                      <span className="text-gray-600">Business Cards - 100 units</span>
+                      <span className="text-blue-600 font-semibold">₦30,000</span>
+                    </div>
+                  </div>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Business Cards - 50 units</span>
+                      <span className="text-blue-600 font-semibold">₦15,000</span>
                     </div>
                   </div>
                 </div>
@@ -295,17 +302,11 @@ const HomePage = () => {
       </section>
 
       <button
-        className="fixed bottom-3 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-40 group"
         onClick={handleWhatsAppClick}
+        className="fixed bottom-6 right-6 bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg z-50 flex items-center gap-2 transition-colors"
       >
-        <div className="relative">
-          <MessageCircle className="h-6 w-6" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-        </div>
-        <div className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          Go to WhatsApp
-          <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
-        </div>
+        <WhatsAppIcon className="w-6 h-6 text-green-500" />
+        <span className="hidden sm:inline">Open WhatsApp</span>
       </button>
 
       {/* Features Section */}

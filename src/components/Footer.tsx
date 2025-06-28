@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Cloud, Phone, Mail, MapPin, Clock, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import cloudprinticom from './Gemini_Generated_Image_29l8nx29l8nx29l8-removebg-preview.png'
+
 
 const Footer = () => {
   return (
@@ -10,12 +12,11 @@ const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Cloud className="h-8 w-8 text-blue-400" />
-              <span className="text-xl font-bold">Cloud Print</span>
-              <span className="text-sm text-gray-400">.dev</span>
+              <img className="h-20 w-20" src={cloudprinticom} />
+              <span className="text-xl font-bold">CloudPrintng</span>
             </div>
             <p className="text-gray-300 text-sm leading-relaxed">
-              Professional cloud-based printing services for businesses and individuals. 
+              Professional cloud-based printing services for businesses and individuals.
               No printers needed - we handle everything from design to delivery.
             </p>
             <div className="flex space-x-4">
@@ -41,6 +42,7 @@ const Footer = () => {
               <li><Link to="/services" className="text-gray-300 hover:text-white transition-colors">Our Services</Link></li>
               <li><Link to="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing Plans</Link></li>
               <li><Link to="/templates" className="text-gray-300 hover:text-white transition-colors">Free Templates</Link></li>
+              <li><Link to="/professionals" className="text-gray-300 hover:text-white transition-colors">Find Professionals</Link></li>
               <li><Link to="/order" className="text-gray-300 hover:text-white transition-colors">Place Order</Link></li>
               <li><Link to="/about" className="text-gray-300 hover:text-white transition-colors">About Us</Link></li>
               <li><a href="https://support.cloudprint.dev" className="text-gray-300 hover:text-white transition-colors">Support Center</a></li>
@@ -67,15 +69,15 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <Phone className="h-5 w-5 text-blue-400 mt-0.5" />
                 <div>
-                  <p className="text-gray-300">+234-800-CLOUD-PRINT</p>
-                  <p className="text-gray-300">+234-901-234-5678</p>
+                  <p className="text-gray-300">+234-906-631-0001</p>
+                  <p className="text-gray-300">+234-813-329-4946</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <Mail className="h-5 w-5 text-blue-400 mt-0.5" />
                 <div>
-                  <p className="text-gray-300">orders@cloudprint.dev</p>
-                  <p className="text-gray-300">support@cloudprint.dev</p>
+                  <p className="text-gray-300">contact@cloudprintng.com</p>
+                  <p className="text-gray-300">info@cloudprintng.com</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
@@ -93,8 +95,8 @@ const Footer = () => {
         <div className="border-t border-gray-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © 2024 Cloud Print. All rights reserved. | 
-              <a href="/privacy" className="hover:text-white ml-1">Privacy Policy</a> | 
+              © 2024 Cloud Print. All rights reserved. |
+              <a href="/privacy" className="hover:text-white ml-1">Privacy Policy</a> |
               <a href="/terms" className="hover:text-white ml-1">Terms of Service</a>
             </p>
             <div className="mt-4 md:mt-0">

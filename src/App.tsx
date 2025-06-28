@@ -9,6 +9,7 @@ import TemplatesPage from './pages/TemplatesPage';
 import OrderPage from './pages/OrderPage';
 import ContactPage from './pages/ContactPage';
 import AboutPage from './pages/AboutPage';
+import ProfessionalsPage from './pages/ProfessionalsPage';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/order" element={<OrderPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/professionals" element={<ProfessionalsPage />} />
           </Routes>
         </main>
         <Footer />
