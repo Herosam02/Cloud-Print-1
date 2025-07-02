@@ -25,7 +25,7 @@ const HomePage = () => {
   const [showVoiceChat, setShowVoiceChat] = useState(false);
   
   // Contact information
-  const phoneNumber = "+234-901-234-5678";
+  const phoneNumber = "+234-906-631-0001";
 
   const handleWhatsAppClick = () => {
     // Open WhatsApp with the phone number
