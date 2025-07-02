@@ -62,6 +62,7 @@ interface Professional {
   verified: boolean;
   featured: boolean;
   joinedDate: string;
+  distance?: number; // Distance in kilometers
 }
 
 const ProfessionalsPage = () => {
@@ -73,6 +74,7 @@ const ProfessionalsPage = () => {
   const [selectedSpecialty, setSelectedSpecialty] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
 
   // Mock data for professionals
   useEffect(() => {
@@ -290,22 +292,69 @@ const ProfessionalsPage = () => {
     setFilteredProfessionals(mockProfessionals);
   }, []);
 
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    return Math.round(distance * 10) / 10; // Round to 1 decimal place
+  };
+
   // Get user location
-  useEffect(() => {
+  const requestLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          const newUserLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          });
+          };
+          setUserLocation(newUserLocation);
+          setLocationPermission('granted');
+          
+          // Calculate distances for all professionals
+          const professionalsWithDistance = professionals.map(prof => ({
+            ...prof,
+            distance: calculateDistance(
+              newUserLocation.lat,
+              newUserLocation.lng,
+              prof.location.coordinates.lat,
+              prof.location.coordinates.lng
+            )
+          }));
+          
+          setProfessionals(professionalsWithDistance);
         },
         (error) => {
-          console.log('Location access denied');
+          console.log('Location access denied', error);
+          setLocationPermission('denied');
         }
       );
     }
-  }, []);
+  };
+
+  // Update distances when user location changes
+  useEffect(() => {
+    if (userLocation && professionals.length > 0) {
+      const professionalsWithDistance = professionals.map(prof => ({
+        ...prof,
+        distance: calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          prof.location.coordinates.lat,
+          prof.location.coordinates.lng
+        )
+      }));
+      
+      setProfessionals(professionalsWithDistance);
+    }
+  }, [userLocation]);
 
   // Filter and search logic
   useEffect(() => {
@@ -346,8 +395,10 @@ const ProfessionalsPage = () => {
         case 'reviews':
           return b.reviewCount - a.reviewCount;
         case 'distance':
-          // Simple distance calculation (would use proper geolocation in production)
-          return 0;
+          if (!a.distance && !b.distance) return 0;
+          if (!a.distance) return 1;
+          if (!b.distance) return -1;
+          return a.distance - b.distance;
         case 'price-low':
           return a.priceRange.length - b.priceRange.length;
         case 'price-high':
@@ -395,47 +446,65 @@ const ProfessionalsPage = () => {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedType('all');
+    setSelectedLocation('all');
+    setSelectedSpecialty('all');
+    setSortBy('rating');
+  };
+
   const locations = [...new Set(professionals.map(p => p.location.state))];
   const specialties = [...new Set(professionals.flatMap(p => p.specialties))];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-purple-600 to-blue-700 text-white py-20">
+      <section className="bg-gradient-to-br from-primary to-accent text-primary-foreground py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-5xl font-bold mb-6">Connect with Local Professionals</h1>
-            <p className="text-xl text-purple-100 max-w-3xl mx-auto mb-8">
+            <p className="text-xl opacity-90 max-w-3xl mx-auto mb-8">
               Find trusted printers, designers, and creative professionals in your area. 
               Connect directly, compare services, and get your projects done locally.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-purple-50 transition-all duration-300 inline-flex items-center justify-center">
+              <button 
+                onClick={requestLocation}
+                className="bg-background text-primary px-8 py-4 rounded-lg font-semibold text-lg hover:bg-accent hover:text-accent-foreground transition-all duration-300 inline-flex items-center justify-center"
+              >
                 <Navigation className="mr-2 h-5 w-5" />
-                Find Nearby Professionals
+                {locationPermission === 'pending' ? 'Find Nearby Professionals' : 
+                 locationPermission === 'granted' ? 'Location Enabled' : 
+                 'Enable Location Access'}
               </button>
-              <button className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-purple-600 transition-all duration-300 inline-flex items-center justify-center">
+              <button className="border-2 border-background text-background px-8 py-4 rounded-lg font-semibold text-lg hover:bg-background hover:text-primary transition-all duration-300 inline-flex items-center justify-center">
                 <Users className="mr-2 h-5 w-5" />
                 Join as Professional
               </button>
             </div>
+            {locationPermission === 'denied' && (
+              <p className="mt-4 text-sm opacity-75">
+                Location access is needed to find professionals near you. Please enable location access in your browser.
+              </p>
+            )}
           </div>
         </div>
       </section>
 
       {/* Search and Filters */}
-      <section className="py-8 bg-white shadow-sm">
+      <section className="py-8 bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
             {/* Search */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search professionals, services, or specialties..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
               />
             </div>
 
@@ -444,7 +513,7 @@ const ProfessionalsPage = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-4 py-3 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               >
                 <option value="all">All Types</option>
                 <option value="printer">Printers</option>
@@ -456,7 +525,7 @@ const ProfessionalsPage = () => {
               <select
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-4 py-3 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               >
                 <option value="all">All Locations</option>
                 {locations.map(location => (
@@ -467,7 +536,7 @@ const ProfessionalsPage = () => {
               <select
                 value={selectedSpecialty}
                 onChange={(e) => setSelectedSpecialty(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-4 py-3 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               >
                 <option value="all">All Specialties</option>
                 {specialties.map(specialty => (
@@ -478,7 +547,7 @@ const ProfessionalsPage = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-4 py-3 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               >
                 <option value="rating">Highest Rated</option>
                 <option value="reviews">Most Reviews</option>
@@ -495,22 +564,22 @@ const ProfessionalsPage = () => {
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
               {filteredProfessionals.length} Professional{filteredProfessionals.length !== 1 ? 's' : ''} Found
             </h2>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Connect with verified professionals in your area
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredProfessionals.map(professional => (
-              <div key={professional.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <div key={professional.id} className="bg-card rounded-xl shadow-lg border border-border overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 {/* Header */}
                 <div className="relative p-6 pb-4">
                   {professional.featured && (
                     <div className="absolute top-4 right-4">
-                      <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
                         Featured
                       </span>
                     </div>
@@ -527,7 +596,7 @@ const ProfessionalsPage = () => {
                         {getTypeIcon(professional.type)}
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                        <h3 className="text-xl font-bold text-card-foreground flex items-center">
                           {professional.name}
                           {professional.verified && (
                             <CheckCircle className="h-5 w-5 text-blue-500 ml-2" />
@@ -536,11 +605,11 @@ const ProfessionalsPage = () => {
                         <div className="flex items-center space-x-2 mt-1">
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                            <span className="text-sm font-medium text-gray-700 ml-1">
+                            <span className="text-sm font-medium text-card-foreground ml-1">
                               {professional.rating}
                             </span>
                           </div>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-muted-foreground">
                             ({professional.reviewCount} reviews)
                           </span>
                         </div>
@@ -548,19 +617,19 @@ const ProfessionalsPage = () => {
                     </div>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                     {professional.description}
                   </p>
 
                   {/* Specialties */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     {professional.specialties.slice(0, 3).map((specialty, index) => (
-                      <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                      <span key={index} className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded-full">
                         {specialty}
                       </span>
                     ))}
                     {professional.specialties.length > 3 && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                      <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded-full">
                         +{professional.specialties.length - 3} more
                       </span>
                     )}
@@ -568,9 +637,14 @@ const ProfessionalsPage = () => {
 
                   {/* Location and Availability */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4 mr-1" />
                       {professional.location.city}, {professional.location.state}
+                      {professional.distance && (
+                        <span className="ml-2 text-primary font-medium">
+                          ({professional.distance} km away)
+                        </span>
+                      )}
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAvailabilityColor(professional.availability)}`}>
                       {professional.availability}
@@ -580,16 +654,16 @@ const ProfessionalsPage = () => {
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 text-center text-sm">
                     <div>
-                      <div className="font-semibold text-gray-900">{professional.priceRange}</div>
-                      <div className="text-gray-500">Price Range</div>
+                      <div className="font-semibold text-card-foreground">{professional.priceRange}</div>
+                      <div className="text-muted-foreground">Price Range</div>
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900">{professional.experience}</div>
-                      <div className="text-gray-500">Experience</div>
+                      <div className="font-semibold text-card-foreground">{professional.experience}</div>
+                      <div className="text-muted-foreground">Experience</div>
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900">{professional.responseTime}</div>
-                      <div className="text-gray-500">Response</div>
+                      <div className="font-semibold text-card-foreground">{professional.responseTime}</div>
+                      <div className="text-muted-foreground">Response</div>
                     </div>
                   </div>
                 </div>
@@ -636,7 +710,7 @@ const ProfessionalsPage = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <a
                       href={`mailto:${professional.contact.email}`}
-                      className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors text-center text-sm flex items-center justify-center"
+                      className="bg-muted text-muted-foreground py-2 px-4 rounded-lg font-medium hover:bg-accent hover:text-accent-foreground transition-colors text-center text-sm flex items-center justify-center"
                     >
                       <Mail className="h-4 w-4 mr-1" />
                       Email
@@ -646,7 +720,7 @@ const ProfessionalsPage = () => {
                         href={professional.contact.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-purple-100 text-purple-700 py-2 px-4 rounded-lg font-medium hover:bg-purple-200 transition-colors text-center text-sm flex items-center justify-center"
+                        className="bg-accent text-accent-foreground py-2 px-4 rounded-lg font-medium hover:bg-accent/80 transition-colors text-center text-sm flex items-center justify-center"
                       >
                         <Globe className="h-4 w-4 mr-1" />
                         Website
@@ -662,7 +736,7 @@ const ProfessionalsPage = () => {
                           href={`https://instagram.com/${professional.social.instagram.replace('@', '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-pink-500 transition-colors"
+                          className="text-muted-foreground hover:text-pink-500 transition-colors"
                         >
                           <Instagram className="h-5 w-5" />
                         </a>
@@ -672,7 +746,7 @@ const ProfessionalsPage = () => {
                           href={`https://facebook.com/${professional.social.facebook}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          className="text-muted-foreground hover:text-blue-600 transition-colors"
                         >
                           <Facebook className="h-5 w-5" />
                         </a>
@@ -682,7 +756,7 @@ const ProfessionalsPage = () => {
                           href={`https://twitter.com/${professional.social.twitter.replace('@', '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-blue-400 transition-colors"
+                          className="text-muted-foreground hover:text-blue-400 transition-colors"
                         >
                           <Twitter className="h-5 w-5" />
                         </a>
@@ -692,7 +766,7 @@ const ProfessionalsPage = () => {
                           href={`https://linkedin.com/in/${professional.social.linkedin}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-blue-700 transition-colors"
+                          className="text-muted-foreground hover:text-blue-700 transition-colors"
                         >
                           <Linkedin className="h-5 w-5" />
                         </a>
@@ -706,14 +780,17 @@ const ProfessionalsPage = () => {
 
           {filteredProfessionals.length === 0 && (
             <div className="text-center py-16">
-              <div className="text-gray-400 mb-4">
+              <div className="text-muted-foreground mb-4">
                 <Search className="h-16 w-16 mx-auto" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No professionals found</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-semibold text-foreground mb-2">No professionals found</h3>
+              <p className="text-muted-foreground mb-6">
                 Try adjusting your search criteria or expanding your location range
               </p>
-              <button className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+              <button 
+                onClick={clearFilters}
+                className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+              >
                 Clear Filters
               </button>
             </div>
@@ -722,19 +799,19 @@ const ProfessionalsPage = () => {
       </section>
 
       {/* Join CTA */}
-      <section className="py-20 bg-gradient-to-r from-purple-600 to-blue-700 text-white">
+      <section className="py-20 bg-gradient-to-r from-primary to-accent text-primary-foreground">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold mb-6">Are You a Professional?</h2>
-          <p className="text-xl mb-8 text-purple-100">
+          <p className="text-xl mb-8 opacity-90">
             Join our network of trusted professionals and connect with clients in your area. 
             Grow your business with Cloud Print's professional directory.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-purple-50 transition-all duration-300 inline-flex items-center justify-center">
+            <button className="bg-background text-primary px-8 py-4 rounded-lg font-semibold text-lg hover:bg-accent hover:text-accent-foreground transition-all duration-300 inline-flex items-center justify-center">
               <Users className="mr-2 h-5 w-5" />
               Join as Professional
             </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-purple-600 transition-all duration-300 inline-flex items-center justify-center">
+            <button className="border-2 border-background text-background px-8 py-4 rounded-lg font-semibold text-lg hover:bg-background hover:text-primary transition-all duration-300 inline-flex items-center justify-center">
               <Award className="mr-2 h-5 w-5" />
               Learn More
             </button>

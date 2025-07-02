@@ -17,26 +17,25 @@ import {
   ChevronRight,
   MessageCircle,
   Headphones,
-  ChartBarIcon as ChartBar
+  Phone
 } from 'lucide-react';
-import VoiceChat from '../components/VoiceChat';
-import WhatsAppIcon from './Whatsappicon';
 
 const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
+  
+  // Contact information
+  const phoneNumber = "+234-901-234-5678";
 
   const handleWhatsAppClick = () => {
-    // Try to open WhatsApp app first, fallback to web version
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Open WhatsApp with the phone number
+    const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^0-9]/g, '')}`;
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+  };
 
-    if (isMobile) {
-      // On mobile, try to open the WhatsApp app
-      window.location.href = "whatsapp://";
-    } else {
-      // On desktop, open WhatsApp Web
-      window.open("https://web.whatsapp.com/", "_blank", "noopener,noreferrer");
-    }
+  const handleCallClick = () => {
+    // Open phone dialer
+    window.location.href = `tel:${phoneNumber}`;
   };
 
   const sliderImages = [
@@ -145,26 +144,32 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Voice Chat Component */}
-      {/* {showVoiceChat && (
-        <VoiceChat onClose={() => setShowVoiceChat(false)} />
-      )} */}
+      {/* Fixed Floating Contact Icons */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {/* Call Button */}
+        <button
+          onClick={handleCallClick}
+          className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 flex items-center justify-center group"
+          title="Call us"
+        >
+          <Phone className="w-6 h-6" />
+          <span className="absolute right-full mr-3 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            Call {phoneNumber}
+          </span>
+        </button>
 
-      {/* Floating Voice Chat Button */}
-      {/* <button
-        onClick={() => setShowVoiceChat(true)}
-        className="fixed bottom-20 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-40 group"
-        title="Start Voice Chat"
-      >
-        <div className="relative">
-          <Headphones className="h-6 w-6" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-        </div>
-        <div className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          Ask me anything about printing!
-          <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
-        </div>
-      </button> */}
+        {/* WhatsApp Button */}
+        <button
+          onClick={handleWhatsAppClick}
+          className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 flex items-center justify-center group"
+          title="WhatsApp us"
+        >
+          <MessageCircle className="w-6 h-6" />
+          <span className="absolute right-full mr-3 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            WhatsApp {phoneNumber}
+          </span>
+        </button>
+      </div>
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
@@ -301,13 +306,24 @@ const HomePage = () => {
         </div>
       </section>
 
-      <button
-        onClick={handleWhatsAppClick}
-        className="fixed bottom-6 right-6 bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg z-50 flex items-center gap-2 transition-colors"
-      >
-        <WhatsAppIcon className="w-6 h-6 text-green-500" />
-        <span className="hidden sm:inline">Open WhatsApp</span>
-      </button>
+      {/* Contact buttons in content area */}
+      <div className="grid grid-cols-2 gap-3 mb-4 max-w-md mx-auto px-4 pt-8">
+        <button
+          onClick={handleCallClick}
+          className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center text-sm flex items-center justify-center"
+        >
+          <Phone className="h-4 w-4 mr-1" />
+          Call
+        </button>
+
+        <button
+          onClick={handleWhatsAppClick}
+          className="bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors text-center text-sm flex items-center justify-center"
+        >
+          <MessageCircle className="h-4 w-4 mr-1" />
+          WhatsApp
+        </button>
+      </div>
 
       {/* Features Section */}
       <section className="py-20 bg-gray-50">
