@@ -93,10 +93,10 @@ const ProfessionalsPage = () => {
           coordinates: { lat: 6.4281, lng: 3.4219 }
         },
         contact: {
-          phone: '+234-901-234-5678',
+          phone: '+234-906-631-0001',
           email: 'info@printmaster.ng',
           website: 'https://printmaster.ng',
-          whatsapp: '+234-901-234-5678'
+          whatsapp: '+234-906-631-0001'
         },
         social: {
           instagram: '@printmaster_ng',
@@ -130,7 +130,7 @@ const ProfessionalsPage = () => {
           coordinates: { lat: 9.0579, lng: 7.4951 }
         },
         contact: {
-          phone: '+234-902-345-6789',
+          phone: '+234-906-631-0001',
           email: 'hello@creativedesigns.ng',
           website: 'https://creativedesigns.ng'
         },
@@ -166,9 +166,9 @@ const ProfessionalsPage = () => {
           coordinates: { lat: 4.8156, lng: 7.0498 }
         },
         contact: {
-          phone: '+234-903-456-7890',
+          phone: '+234-906-631-0001',
           email: 'orders@quickprint.ng',
-          whatsapp: '+234-903-456-7890'
+          whatsapp: '+234-906-631-0001'
         },
         description: 'Fast and reliable printing services with same-day delivery. Perfect for urgent printing needs and last-minute orders.',
         services: ['Document Printing', 'Business Cards', 'Flyers', 'Same Day Service'],
@@ -197,7 +197,7 @@ const ProfessionalsPage = () => {
           coordinates: { lat: 12.0022, lng: 8.5920 }
         },
         contact: {
-          phone: '+234-904-567-8901',
+          phone: '+234-906-631-0001',
           email: 'info@designprinthub.ng',
           website: 'https://designprinthub.ng'
         },
@@ -233,7 +233,7 @@ const ProfessionalsPage = () => {
           coordinates: { lat: 6.4474, lng: 3.4553 }
         },
         contact: {
-          phone: '+234-905-678-9012',
+          phone: '+234-906-631-0001',
           email: 'studio@elitegraphics.ng',
           website: 'https://elitegraphics.ng'
         },
@@ -269,9 +269,9 @@ const ProfessionalsPage = () => {
           coordinates: { lat: 7.3775, lng: 3.9470 }
         },
         contact: {
-          phone: '+234-906-789-0123',
+          phone: '+234-906-631-0001',
           email: 'orders@budgetprint.ng',
-          whatsapp: '+234-906-789-0123'
+          whatsapp: '+234-906-631-0001'
         },
         description: 'Affordable printing solutions for students, small businesses, and bulk orders. Quality printing at budget-friendly prices.',
         services: ['Document Printing', 'Thesis Binding', 'Bulk Printing', 'Student Services'],
