@@ -306,24 +306,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Contact buttons in content area */}
-      <div className="grid grid-cols-2 gap-3 mb-4 max-w-md mx-auto px-4 pt-8">
-        <button
-          onClick={handleCallClick}
-          className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center text-sm flex items-center justify-center"
-        >
-          <Phone className="h-4 w-4 mr-1" />
-          Call
-        </button>
-
-        <button
-          onClick={handleWhatsAppClick}
-          className="bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors text-center text-sm flex items-center justify-center"
-        >
-          <MessageCircle className="h-4 w-4 mr-1" />
-          WhatsApp
-        </button>
-      </div>
 
       {/* Features Section */}
       <section className="py-20 bg-gray-50">
