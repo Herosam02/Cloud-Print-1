@@ -1,0 +1,386 @@
+{
+      id: 'letterheads',
+      name: 'Letterheads',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Professional letterheads for your business',
+      basePrice: 8000,
+      unit: '100 sheets',
+      category: 'original'
+    },
+    {
+      id: 'envelopes',
+      name: 'Custom Envelopes',
+      icon: <Mail className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Branded envelopes in various sizes',
+      basePrice: 12000,
+      unit: '100 envelopes',
+      category: 'original'
+    },
+
+    // Student Services (10)
+    {
+      id: 'thesis-binding',
+      name: 'Thesis Binding',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Professional thesis and dissertation binding',
+      basePrice: 8500,
+      unit: 'per copy',
+      category: 'students'
+    },
+    {
+      id: 'project-reports',
+      name: 'Project Reports',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Student project report printing and binding',
+      basePrice: 3500,
+      unit: 'per copy',
+      category: 'students'
+    },
+    {
+      id: 'lecture-notes',
+      name: 'Lecture Notes',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Course materials and lecture note printing',
+      basePrice: 25,
+      unit: 'per page',
+      category: 'students'
+    },
+    {
+      id: 'student-id-cards',
+      name: 'Student ID Cards',
+      icon: <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom student identification cards',
+      basePrice: 1500,
+      unit: 'per card',
+      category: 'students'
+    },
+    {
+      id: 'exam-pads',
+      name: 'Exam Answer Booklets',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom exam answer booklets for schools',
+      basePrice: 150,
+      unit: 'per booklet',
+      category: 'students'
+    },
+    {
+      id: 'research-posters',
+      name: 'Research Posters',
+      icon: <Image className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Academic research presentation posters',
+      basePrice: 4500,
+      unit: 'per poster',
+      category: 'students'
+    },
+    {
+      id: 'course-manuals',
+      name: 'Course Manuals',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Student course manuals and handbooks',
+      basePrice: 120,
+      unit: 'per page',
+      category: 'students'
+    },
+    {
+      id: 'assignment-covers',
+      name: 'Assignment Covers',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Professional assignment cover pages',
+      basePrice: 200,
+      unit: 'per cover',
+      category: 'students'
+    },
+    {
+      id: 'certificates',
+      name: 'Academic Certificates',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom academic achievement certificates',
+      basePrice: 2500,
+      unit: 'per certificate',
+      category: 'students'
+    },
+    {
+      id: 'graduation-programs',
+      name: 'Graduation Programs',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Graduation ceremony programs and booklets',
+      basePrice: 850,
+      unit: 'per program',
+      category: 'students'
+    },
+
+    // Church Services (10)
+    {
+      id: 'church-bulletins',
+      name: 'Church Bulletins',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Weekly church service bulletins',
+      basePrice: 180,
+      unit: 'per bulletin',
+      category: 'church'
+    },
+    {
+      id: 'sermon-booklets',
+      name: 'Sermon Booklets',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Compiled sermon booklets and teachings',
+      basePrice: 75,
+      unit: 'per page',
+      category: 'church'
+    },
+    {
+      id: 'church-banners',
+      name: 'Church Banners',
+      icon: <Megaphone className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Religious event and worship banners',
+      basePrice: 6500,
+      unit: 'per banner',
+      category: 'church'
+    },
+    {
+      id: 'prayer-cards',
+      name: 'Prayer Cards',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Memorial and prayer reminder cards',
+      basePrice: 350,
+      unit: 'per card',
+      category: 'church'
+    },
+    {
+      id: 'church-calendars',
+      name: 'Church Calendars',
+      icon: <Calendar className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Annual church event calendars',
+      basePrice: 1800,
+      unit: 'per calendar',
+      category: 'church'
+    },
+    {
+      id: 'offering-envelopes',
+      name: 'Offering Envelopes',
+      icon: <Mail className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom church offering envelopes',
+      basePrice: 85,
+      unit: 'per envelope',
+      category: 'church'
+    },
+    {
+      id: 'hymn-books',
+      name: 'Hymn Books',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom church hymn and song books',
+      basePrice: 2200,
+      unit: 'per book',
+      category: 'church'
+    },
+    {
+      id: 'baptism-certificates',
+      name: 'Baptism Certificates',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Official baptism certificates',
+      basePrice: 1800,
+      unit: 'per certificate',
+      category: 'church'
+    },
+    {
+      id: 'church-programs',
+      name: 'Event Programs',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Church event and conference programs',
+      basePrice: 450,
+      unit: 'per program',
+      category: 'church'
+    },
+    {
+      id: 'membership-cards',
+      name: 'Membership Cards',
+      icon: <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Church membership identification cards',
+      basePrice: 950,
+      unit: 'per card',
+      category: 'church'
+    },
+
+    // Event Planner Services (10)
+    {
+      id: 'wedding-invitations',
+      name: 'Wedding Invitations',
+      icon: <Mail className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Elegant wedding invitation cards',
+      basePrice: 850,
+      unit: 'per invitation',
+      category: 'events'
+    },
+    {
+      id: 'event-tickets',
+      name: 'Event Tickets',
+      icon: <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom event admission tickets',
+      basePrice: 120,
+      unit: 'per ticket',
+      category: 'events'
+    },
+    {
+      id: 'table-cards',
+      name: 'Table Number Cards',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Event table number and name cards',
+      basePrice: 180,
+      unit: 'per card',
+      category: 'events'
+    },
+    {
+      id: 'menu-cards',
+      name: 'Menu Cards',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Restaurant-style event menu cards',
+      basePrice: 220,
+      unit: 'per menu',
+      category: 'events'
+    },
+    {
+      id: 'photo-booth-props',
+      name: 'Photo Booth Props',
+      icon: <Image className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom photo booth signs and props',
+      basePrice: 1200,
+      unit: 'per prop',
+      category: 'events'
+    },
+    {
+      id: 'backdrop-banners',
+      name: 'Backdrop Banners',
+      icon: <Megaphone className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Large event backdrop banners',
+      basePrice: 12000,
+      unit: 'per banner',
+      category: 'events'
+    },
+    {
+      id: 'program-booklets',
+      name: 'Program Booklets',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Event program and schedule booklets',
+      basePrice: 680,
+      unit: 'per booklet',
+      category: 'events'
+    },
+    {
+      id: 'name-tags',
+      name: 'Name Tags',
+      icon: <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Event attendee name tags and badges',
+      basePrice: 150,
+      unit: 'per tag',
+      category: 'events'
+    },
+    {
+      id: 'thank-you-cards',
+      name: 'Thank You Cards',
+      icon: <Mail className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Post-event thank you cards',
+      basePrice: 280,
+      unit: 'per card',
+      category: 'events'
+    },
+    {
+      id: 'signage-boards',
+      name: 'Directional Signage',
+      icon: <Megaphone className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Event directional and information signs',
+      basePrice: 3500,
+      unit: 'per sign',
+      category: 'events'
+    },
+
+    // Office Services (10)
+    {
+      id: 'company-profiles',
+      name: 'Company Profiles',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Professional company profile booklets',
+      basePrice: 180,
+      unit: 'per page',
+      category: 'office'
+    },
+    {
+      id: 'presentation-folders',
+      name: 'Presentation Folders',
+      icon: <Package className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom branded presentation folders',
+      basePrice: 850,
+      unit: 'per folder',
+      category: 'office'
+    },
+    {
+      id: 'employee-handbooks',
+      name: 'Employee Handbooks',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Company policy and employee handbooks',
+      basePrice: 150,
+      unit: 'per page',
+      category: 'office'
+    },
+    {
+      id: 'corporate-calendars',
+      name: 'Corporate Calendars',
+      icon: <Calendar className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Branded corporate desk calendars',
+      basePrice: 2800,
+      unit: 'per calendar',
+      category: 'office'
+    },
+    {
+      id: 'annual-reports',
+      name: 'Annual Reports',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Professional annual report printing',
+      basePrice: 320,
+      unit: 'per page',
+      category: 'office'
+    },
+    {
+      id: 'invoice-books',
+      name: 'Invoice Books',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Custom invoice and receipt books',
+      basePrice: 1800,
+      unit: 'per book',
+      category: 'office'
+    },
+    {
+      id: 'office-stationery',
+      name: 'Office Stationery',
+      icon: <Package className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Complete branded office stationery sets',
+      basePrice: 450,
+      unit: 'per item',
+      category: 'office'
+    },
+    {
+      id: 'training-manuals',
+      name: 'Training Manuals',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Employee training and procedure manuals',
+      basePrice: 185,
+      unit: 'per page',
+      category: 'office'
+    },
+    {
+      id: 'office-forms',
+      name: 'Custom Forms',
+      icon: <FileText className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'NCR forms and custom office documents',
+      basePrice: 95,
+      unit: 'per form',
+      category: 'office'
+    },
+    {
+      id: 'id-badges',
+      name: 'Employee ID Badges',
+      icon: <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />,
+      description: 'Professional employee identification badges',
+      basePrice: 1200,
+      unit: 'per badge',
+      category: 'office'
+    }
